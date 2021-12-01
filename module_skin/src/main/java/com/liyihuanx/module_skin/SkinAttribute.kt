@@ -10,7 +10,7 @@ import android.view.View
  */
 class SkinAttribute {
     // 定义需要换肤的属性
-    val mAttributes = arrayListOf(
+    private val mAttributes = arrayListOf(
         "background", "src", "textColor"
     )
 

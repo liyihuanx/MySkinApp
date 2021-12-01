@@ -1,116 +1,105 @@
-package com.liyihuanx.module_skin;
+package com.liyihuanx.module_skin
 
-import android.app.Activity;
-import android.content.Context;
-import android.util.AttributeSet;
-import android.view.LayoutInflater;
-import android.view.View;
-
-import java.lang.reflect.Constructor;
-import java.util.HashMap;
-import java.util.Observable;
-import java.util.Observer;
+import android.app.Activity
+import android.content.Context
+import android.util.AttributeSet
+import android.view.LayoutInflater
+import android.view.View
+import java.lang.reflect.Constructor
+import java.util.*
 
 /**
  * @author created by liyihuanx
  * @date 2021/11/24
  * @description: 类的描述
  */
-public class SkinLayoutInflaterFactory implements LayoutInflater.Factory2, Observer {
-
-    private static final String[] mClassPrefixList = {
-            "android.widget.",
-            "android.webkit.",
-            "android.app.",
-            "android.view."
-    };
-
-    //记录对应VIEW的构造函数
-    private static final Class<?>[] mConstructorSignature = new Class[]{
-            Context.class, AttributeSet.class};
-
-    private static final HashMap<String, Constructor<? extends View>> mConstructorMap =
-            new HashMap<String, Constructor<? extends View>>();
-
+class SkinLayoutInflaterFactory(  // 用于获取窗口的状态框的信息
+    private val activity: Activity
+) : LayoutInflater.Factory2, Observer {
     // 当选择新皮肤后需要替换View与之对应的属性
     // 页面属性管理器
-    private SkinAttribute skinAttribute;
-    // 用于获取窗口的状态框的信息
-    private Activity activity;
-
-    public SkinLayoutInflaterFactory(Activity activity) {
-        this.activity = activity;
-        skinAttribute = new SkinAttribute();
-    }
-
-
-    @Override
-    public View onCreateView(View parent, String name, Context context, AttributeSet attrs) {
+    private val skinAttribute: SkinAttribute = SkinAttribute()
+    override fun onCreateView(
+        parent: View,
+        name: String,
+        context: Context,
+        attrs: AttributeSet
+    ): View? {
         //换肤就是在需要时候替换 View的属性(src、background等)
         //所以这里创建 View,从而修改View属性
-        View view = createSDKView(name, context, attrs);
+        var view = createSDKView(name, context, attrs)
         if (null == view) {
-            view = createView(name, context, attrs);
+            view = createView(name, context, attrs)
         }
         //这就是我们加入的逻辑
         if (null != view) {
             //加载属性
-            skinAttribute.collectViewAttr(view, attrs);
+            skinAttribute.collectViewAttr(view, attrs)
         }
-        return view;
+        return view
     }
 
-
-    private View createSDKView(String name, Context context, AttributeSet
-            attrs) {
+    private fun createSDKView(name: String, context: Context, attrs: AttributeSet): View? {
         //如果包含 . 则不是SDK中的view 可能是自定义view包括support库中的View
         if (-1 != name.indexOf('.')) {
-            return null;
+            return null
         }
         //不包含就要在解析的 节点 name前，拼上： android.widget. 等尝试去反射
-        for (int i = 0; i < mClassPrefixList.length; i++) {
-            View view = createView(mClassPrefixList[i] + name, context, attrs);
+        for (i in mClassPrefixList.indices) {
+            val view = createView(mClassPrefixList[i] + name, context, attrs)
             if (view != null) {
-                return view;
+                return view
             }
         }
-        return null;
+        return null
     }
 
-    private View createView(String name, Context context, AttributeSet
-            attrs) {
-        Constructor<? extends View> constructor = findConstructor(context, name);
+    private fun createView(name: String, context: Context, attrs: AttributeSet): View? {
+        val constructor = findConstructor(context, name)
         try {
-            return constructor.newInstance(context, attrs);
-        } catch (Exception e) {
+            return constructor!!.newInstance(context, attrs)
+        } catch (e: Exception) {
         }
-        return null;
+        return null
     }
 
-
-    private Constructor<? extends View> findConstructor(Context context, String name) {
-        Constructor<? extends View> constructor = mConstructorMap.get(name);
+    private fun findConstructor(context: Context, name: String): Constructor<out View>? {
+        var constructor = mConstructorMap[name]
         if (constructor == null) {
             try {
-                Class<? extends View> clazz = context.getClassLoader().loadClass
-                        (name).asSubclass(View.class);
-                constructor = clazz.getConstructor(mConstructorSignature);
-                mConstructorMap.put(name, constructor);
-            } catch (Exception e) {
+                val clazz = context.classLoader.loadClass(name).asSubclass(
+                    View::class.java
+                )
+                constructor = clazz.getConstructor(*mConstructorSignature)
+                mConstructorMap[name] = constructor
+            } catch (e: Exception) {
             }
         }
-        return constructor;
+        return constructor
     }
 
-
-    @Override
-    public View onCreateView(String name, Context context, AttributeSet attrs) {
-        return null;
+    override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? {
+        return null
     }
 
     //如果有人发送通知，这里就会执行
-    @Override
-    public void update(Observable o, Object arg) {
-        skinAttribute.notifyAllApplySkin();
+    override fun update(o: Observable, arg: Any) {
+        skinAttribute.notifyAllApplySkin()
     }
+
+    companion object {
+        private val mClassPrefixList = arrayOf(
+            "android.widget.",
+            "android.webkit.",
+            "android.app.",
+            "android.view."
+        )
+
+        //记录对应VIEW的构造函数
+        private val mConstructorSignature = arrayOf(
+            Context::class.java, AttributeSet::class.java
+        )
+        private val mConstructorMap = HashMap<String, Constructor<out View>?>()
+    }
+
 }
