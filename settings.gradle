@@ -1,0 +1,4 @@
+include ':plugin_skin'
+include ':module_skin'
+include ':app'
+rootProject.name = "MySkinApp"
